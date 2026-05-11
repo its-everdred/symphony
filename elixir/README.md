@@ -62,6 +62,68 @@ mise exec -- mix build
 mise exec -- ./bin/symphony ./WORKFLOW.md
 ```
 
+## Operating Symphony with `agents`
+
+`scripts/agents` is a thin wrapper around `./bin/symphony` that adds named
+profiles, foreground / background modes, and a `stop` verb. It works on Linux
+(systemd `--user`) and macOS (`nohup` + PID file), autodetected from `uname`.
+
+Put `scripts/` on your `PATH` so the command is reachable from anywhere:
+
+```bash
+cd symphony
+export PATH="$PWD/scripts:$PATH"   # add to ~/.zshrc or ~/.bashrc to persist
+agents list
+```
+
+The script reads its own location, so no environment variables are required for
+a fresh clone — `AGENTS_REPO_ROOT` and `AGENTS_MISE_BIN` remain available as
+overrides if your layout differs.
+
+Command surface:
+
+```text
+agents                       # default profile, foreground
+agents run [profile]         # named profile, foreground
+agents --bg [profile|all]    # background mode (systemd on Linux, nohup on macOS)
+agents stop [profile|all]    # stop foreground processes and any background service
+agents list                  # show configured profiles
+agents <path-to-WORKFLOW.md> # ad-hoc workflow in the foreground
+```
+
+### Profiles
+
+Define profiles in `~/.config/symphony/agents.profiles`. Each non-comment line
+is six pipe-separated fields:
+
+```text
+name|symphony_root|workflow|port|logs_root|service
+```
+
+Example:
+
+```text
+actions|/Users/you/code/actions|WORKFLOW.actions.md|4101|/Users/you/logs/actions|symphony-actions
+```
+
+The two built-in profiles `default` (`WORKFLOW.md`) and `symphony`
+(`WORKFLOW.symphony.md`) are always loaded; the profile file extends or
+overrides them.
+
+### Platform notes
+
+| | Linux | macOS |
+|---|---|---|
+| Background driver | `systemctl --user` against a `<service>.service` user unit you maintain | `nohup` + PID file at `~/.local/state/symphony/<service>.pid` |
+| Auto-restart on crash | Yes (via systemd unit) | No |
+| Auto-start on login | Yes (if the user unit is enabled) | No |
+| Stop command | `agents stop` → `systemctl --user stop` + `pkill` cleanup | `agents stop` → `SIGTERM` the PID from the PID file + `pkill` cleanup |
+
+The macOS path is intentionally process-level only — no `launchd` plist
+generation, no auto-restart. If you need a service-manager-grade deployment on
+macOS, write your own `launchd` plist and use `agents` in the foreground or via
+the plist's `ProgramArguments`.
+
 ## Configuration
 
 Pass a custom workflow file path to `./bin/symphony` when starting the service:
