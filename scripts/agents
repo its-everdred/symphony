@@ -179,6 +179,44 @@ load_env_file() {
   fi
 }
 
+require_mise() {
+  if [ -z "$mise_bin" ] || [ ! -x "$mise_bin" ]; then
+    echo "agents: mise not found on PATH. Install mise (https://mise.jdx.dev) or set AGENTS_MISE_BIN." >&2
+    exit 64
+  fi
+}
+
+ensure_built() {
+  local elixir_dir="$1"
+  local symphony_bin="$elixir_dir/bin/symphony"
+
+  # AGENTS_SKIP_BUILD lets the test fixture short-circuit this without faking
+  # `mix escript.build` invocations on top of every other stubbed binary.
+  if [ "${AGENTS_SKIP_BUILD:-0}" = "1" ]; then
+    return 0
+  fi
+
+  if [ ! -x "$symphony_bin" ]; then
+    build_symphony "$elixir_dir"
+    return
+  fi
+
+  # If any source file is newer than the escript, rebuild. `-quit` stops after
+  # the first hit; output is discarded — we only care about the exit signal.
+  if [ -n "$(find "$elixir_dir/lib" "$elixir_dir/mix.exs" "$elixir_dir/mix.lock" \
+              -newer "$symphony_bin" -print -quit 2>/dev/null)" ]; then
+    build_symphony "$elixir_dir"
+  fi
+}
+
+build_symphony() {
+  local elixir_dir="$1"
+
+  require_mise
+  echo "agents: rebuilding bin/symphony…" >&2
+  (cd "$elixir_dir" && "$mise_bin" exec -- mix escript.build) >&2
+}
+
 source_env_files() {
   # Order: home-dir env first, then repo-local .env (overrides), then
   # .env.local (machine-specific override). All optional.
@@ -277,6 +315,8 @@ start_bg_nohup() {
   port="${profile_ports[$profile]}"
   logs_root="${profile_logs_roots[$profile]}"
   service="${profile_services[$profile]}"
+
+  ensure_built "$elixir_dir"
 
   ensure_bg_state_dir
   pid_file="$(bg_pid_file "$service")"
@@ -389,6 +429,8 @@ run_foreground() {
   port="${profile_ports[$profile]}"
   logs_root="${profile_logs_roots[$profile]}"
 
+  ensure_built "$elixir_dir"
+
   cd "$elixir_dir"
 
   source_env_files
@@ -436,6 +478,10 @@ case "${1:-}" in
     ;;
   list)
     list_profiles
+    exit 0
+    ;;
+  build)
+    build_symphony "$repo_root/elixir"
     exit 0
     ;;
   --bg)

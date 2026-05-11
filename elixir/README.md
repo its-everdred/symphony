@@ -88,9 +88,14 @@ agents run [profile]         # named profile, foreground
 agents --bg [profile|all]    # background mode (systemd on Linux, nohup on macOS)
 agents stop [profile|all]    # stop foreground processes and any background service
 agents list                  # show configured profiles
+agents build                 # rebuild bin/symphony explicitly
 agents --host [...]          # bind to the host configured in WORKFLOW.md (e.g. Tailscale IP)
 agents <path-to-WORKFLOW.md> # ad-hoc workflow in the foreground
 ```
+
+`agents` rebuilds `bin/symphony` automatically when it is missing or older
+than any source file under `elixir/lib/`, `mix.exs`, or `mix.lock`, so a
+`git pull` is all you need before invoking `agents` again.
 
 By default `agents` injects `--host 127.0.0.1` so the Phoenix dashboard is
 reachable only on the local machine, even when `WORKFLOW.md` configures a

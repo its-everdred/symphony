@@ -190,6 +190,18 @@ defmodule ScriptsAgentsTest do
     assert output =~ "MISE:exec -- ./bin/symphony --interactive"
   end
 
+  test "auto-rebuilds bin/symphony when missing" do
+    ctx = test_context()
+    # The repo_root/elixir dir is empty by default — bin/symphony does not
+    # exist, so ensure_built should call `mix escript.build` via fake mise.
+    assert {output, 0} = run_agents(ctx, ["run", "symphony"], skip_build: false)
+
+    assert output =~ "agents: rebuilding bin/symphony"
+    assert output =~ "MISE:exec -- mix escript.build"
+    # The real Symphony invocation still runs after the rebuild step.
+    assert output =~ "MISE:exec -- ./bin/symphony"
+  end
+
   describe "macOS (Darwin) background mode" do
     test "--bg writes a PID file and invokes nohup, not systemctl" do
       ctx = test_context()
@@ -350,6 +362,7 @@ defmodule ScriptsAgentsTest do
 
   defp run_agents(ctx, args, opts \\ []) do
     os_override = Keyword.get(opts, :os, "Linux")
+    skip_build = if Keyword.get(opts, :skip_build, true), do: "1", else: "0"
 
     System.cmd("bash", [@script | args],
       env: [
@@ -363,6 +376,7 @@ defmodule ScriptsAgentsTest do
         {"AGENTS_KILL_BIN", ctx.fake_kill},
         {"AGENTS_BG_STATE_DIR", ctx.bg_state_dir},
         {"AGENTS_OS_OVERRIDE", os_override},
+        {"AGENTS_SKIP_BUILD", skip_build},
         {"AGENTS_TEST_COMMAND_LOG", ctx.command_log}
       ],
       stderr_to_stdout: true
