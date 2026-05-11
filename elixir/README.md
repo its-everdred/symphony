@@ -83,13 +83,20 @@ overrides if your layout differs.
 Command surface:
 
 ```text
-agents                       # default profile, foreground
+agents                       # default profile, foreground, local-only bind
 agents run [profile]         # named profile, foreground
 agents --bg [profile|all]    # background mode (systemd on Linux, nohup on macOS)
 agents stop [profile|all]    # stop foreground processes and any background service
 agents list                  # show configured profiles
+agents --host [...]          # bind to the host configured in WORKFLOW.md (e.g. Tailscale IP)
 agents <path-to-WORKFLOW.md> # ad-hoc workflow in the foreground
 ```
+
+By default `agents` injects `--host 127.0.0.1` so the Phoenix dashboard is
+reachable only on the local machine, even when `WORKFLOW.md` configures a
+non-loopback `server.host`. Pass `--host` anywhere in the argument list to
+opt out of that injection and let the workflow's `server.host` value take
+effect — useful when exposing the dashboard over Tailscale or a LAN.
 
 ### Environment variables
 

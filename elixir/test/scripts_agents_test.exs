@@ -175,6 +175,21 @@ defmodule ScriptsAgentsTest do
     refute output =~ "MISE:"
   end
 
+  test "default foreground run binds locally via --host 127.0.0.1" do
+    ctx = test_context()
+
+    assert {output, 0} = run_agents(ctx, ["run", "symphony"])
+    assert output =~ "MISE:exec -- ./bin/symphony --host 127.0.0.1"
+  end
+
+  test "--host opts out of the local-only injection" do
+    ctx = test_context()
+
+    assert {output, 0} = run_agents(ctx, ["--host", "run", "symphony"])
+    refute output =~ "--host 127.0.0.1"
+    assert output =~ "MISE:exec -- ./bin/symphony --interactive"
+  end
+
   describe "macOS (Darwin) background mode" do
     test "--bg writes a PID file and invokes nohup, not systemctl" do
       ctx = test_context()

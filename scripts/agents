@@ -15,6 +15,20 @@ bg_state_dir="${AGENTS_BG_STATE_DIR:-$HOME/.local/state/symphony}"
 
 agents_os="${AGENTS_OS_OVERRIDE:-$(uname -s)}"
 
+# --host: when present, let the workflow's configured host stand (typical for
+# Tailscale or LAN exposure). When absent, the wrapper injects
+# `--host 127.0.0.1` so a default `agents` run binds locally only.
+expose_host=0
+filtered_args=()
+for arg in "$@"; do
+  if [ "$arg" = "--host" ]; then
+    expose_host=1
+  else
+    filtered_args+=("$arg")
+  fi
+done
+set -- "${filtered_args[@]}"
+
 declare -a profile_names=()
 declare -A profile_symphony_roots=()
 declare -A profile_workflows=()
@@ -285,6 +299,10 @@ start_bg_nohup() {
       args+=(--port "$port")
     fi
 
+    if [ "$expose_host" -eq 0 ]; then
+      args+=(--host 127.0.0.1)
+    fi
+
     args+=(--i-understand-that-this-will-be-running-without-the-usual-guardrails "$workflow")
 
     "$nohup_bin" "$mise_bin" "${args[@]}" >"$log_file" 2>&1 &
@@ -383,6 +401,10 @@ run_foreground() {
 
   if [ -n "$port" ]; then
     args+=(--port "$port")
+  fi
+
+  if [ "$expose_host" -eq 0 ]; then
+    args+=(--host 127.0.0.1)
   fi
 
   args+=(--interactive --i-understand-that-this-will-be-running-without-the-usual-guardrails "$workflow")
