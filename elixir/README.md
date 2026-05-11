@@ -91,6 +91,19 @@ agents list                  # show configured profiles
 agents <path-to-WORKFLOW.md> # ad-hoc workflow in the foreground
 ```
 
+### Environment variables
+
+When `agents` launches a profile (foreground or background), it sources three
+optional files in order — later files override earlier ones, and all of them
+are skipped if not present:
+
+1. `~/.config/symphony-dashboard.env` (set `AGENTS_ENV_FILE` to override path)
+2. `<repo>/.env`
+3. `<repo>/.env.local`
+
+`.env`, `.env.local`, and `.env.*.local` are gitignored at the repo root, so
+local secrets stay out of version control.
+
 ### Profiles
 
 Define profiles in `~/.config/symphony/agents.profiles`. Each non-comment line

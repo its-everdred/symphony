@@ -154,6 +154,25 @@ list_profiles() {
   done
 }
 
+load_env_file() {
+  local path="$1"
+
+  if [ -r "$path" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$path"
+    set +a
+  fi
+}
+
+source_env_files() {
+  # Order: home-dir env first, then repo-local .env (overrides), then
+  # .env.local (machine-specific override). All optional.
+  load_env_file "$env_file"
+  load_env_file "$repo_root/.env"
+  load_env_file "$repo_root/.env.local"
+}
+
 ensure_bg_state_dir() {
   mkdir -p "$bg_state_dir"
 }
@@ -254,12 +273,7 @@ start_bg_nohup() {
   (
     cd "$elixir_dir"
 
-    if [ -r "$env_file" ]; then
-      set -a
-      # shellcheck disable=SC1090
-      . "$env_file"
-      set +a
-    fi
+    source_env_files
 
     args=(exec -- ./bin/symphony)
 
@@ -359,12 +373,7 @@ run_foreground() {
 
   cd "$elixir_dir"
 
-  if [ -r "$env_file" ]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "$env_file"
-    set +a
-  fi
+  source_env_files
 
   args=(exec -- ./bin/symphony)
 
