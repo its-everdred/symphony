@@ -1,32 +1,48 @@
 defmodule SymphonyElixir.Os do
   @moduledoc """
-  Platform abstraction for OS-specific runtime operations (tty resolution,
-  `stty` invocation). The dispatcher (`impl/0`) picks an implementation based
-  on `:os.type/0` and can be overridden in tests via the
-  `:symphony_elixir, :os_impl` application env.
+  Runtime-environment helpers that need to be portable across the platforms
+  Symphony targets (Linux + macOS).
 
-  Callers should always go through `SymphonyElixir.Os.tty_device/0` and
-  `SymphonyElixir.Os.stty/2` — never re-detect the OS inline.
+  The single operation we need is `stty/1` — set termios flags on the
+  controlling terminal. We invoke `stty` via `Port.open/2` with
+  `:nouse_stdio` so the child inherits BEAM's real fd 0 (the controlling
+  terminal). With that inheritance in place, `stty` operates on its own
+  stdin by default — no `/proc`-style device lookup, no `-F`/`-f` flag, no
+  OS branching.
   """
 
-  @callback tty_device() :: {:ok, String.t()} | {:error, term()}
-  @callback stty(device :: String.t(), args :: [String.t()]) :: :ok | {:error, term()}
+  @timeout_ms 5_000
 
-  @spec impl() :: module()
-  def impl do
-    Application.get_env(:symphony_elixir, :os_impl) || default_impl()
+  @spec stty([String.t()]) :: :ok | {:error, String.t()}
+  def stty(args) do
+    case :os.find_executable(~c"stty") do
+      false -> {:error, "stty executable not found on PATH"}
+      path -> execute(path, args)
+    end
   end
 
-  @spec tty_device() :: {:ok, String.t()} | {:error, term()}
-  def tty_device, do: impl().tty_device()
+  defp execute(executable_path, args) do
+    port =
+      Port.open({:spawn_executable, executable_path}, [
+        :exit_status,
+        :nouse_stdio,
+        :hide,
+        args: args
+      ])
 
-  @spec stty(String.t(), [String.t()]) :: :ok | {:error, term()}
-  def stty(device, args), do: impl().stty(device, args)
+    receive do
+      {^port, {:exit_status, 0}} ->
+        :ok
 
-  defp default_impl do
-    case :os.type() do
-      {:unix, :darwin} -> __MODULE__.Darwin
-      _ -> __MODULE__.Linux
+      {^port, {:exit_status, status}} ->
+        {:error, "stty #{Enum.join(args, " ")} exited with status #{status}"}
+    after
+      @timeout_ms ->
+        Port.close(port)
+        {:error, "stty #{Enum.join(args, " ")} timed out after #{@timeout_ms}ms"}
     end
+  rescue
+    error in [ErlangError, ArgumentError] ->
+      {:error, "stty invocation failed: #{Exception.message(error)}"}
   end
 end

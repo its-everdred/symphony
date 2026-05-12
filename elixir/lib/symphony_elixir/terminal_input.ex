@@ -169,9 +169,8 @@ defmodule SymphonyElixir.TerminalInput do
   defp enter_raw_mode(true), do: :ok
 
   defp enter_raw_mode(false) do
-    with {:ok, device} <- SymphonyElixir.Os.tty_device(),
-         :ok <-
-           SymphonyElixir.Os.stty(device, [
+    with :ok <-
+           SymphonyElixir.Os.stty([
              "-icanon",
              "-echo",
              "-isig",
@@ -188,12 +187,7 @@ defmodule SymphonyElixir.TerminalInput do
 
   defp restore_terminal do
     disable_bracketed_paste()
-
-    case SymphonyElixir.Os.tty_device() do
-      {:ok, device} -> SymphonyElixir.Os.stty(device, ["sane"])
-      _ -> :ok
-    end
-
+    SymphonyElixir.Os.stty(["sane"])
     :ok
   end
 
