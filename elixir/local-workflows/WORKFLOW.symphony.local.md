@@ -12,30 +12,44 @@ tracker:
     - cancelled
     - canceled
 github:
-  repo: your-org/your-repo
+  repo: its-everdred/symphony
   label_prefix: agent
 polling:
-  interval_ms: 30000
+  interval_ms: 5000
 server:
-  host: 127.0.0.1
+  host: 100.81.109.51
   port: 4000
 workspace:
   root: ~/code/symphony-workspaces
 hooks:
   after_create: |
-    git clone "$SYMPHONY_REPOSITORY_URL" .
+    git clone https://github.com/its-everdred/symphony.git .
     issue_id="$(basename "$PWD")"
     git checkout -b "symphony/${issue_id}" origin/main
+  before_run: |
+    if [ ! -d .git ] || ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      find . -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+      git clone https://github.com/its-everdred/symphony.git .
+      issue_id="$(basename "$PWD")"
+      git checkout -b "symphony/${issue_id}" origin/main
+    fi
   before_remove: |
     git status --short
 agent:
   max_concurrent_agents: 2
   max_turns: 3
 codex:
-  command: codex app-server
+  command: codex --config shell_environment_policy.inherit=all --config 'model="gpt-5.5"' --config model_reasoning_effort=high app-server
+  approval_policy: never
+  thread_sandbox: workspace-write
+  turn_sandbox_policy:
+    type: workspaceWrite
+    writableRoots:
+      - /home/applekid/code/symphony-workspaces
+    networkAccess: true
 ---
 
-You are working on tracker issue `{{ issue.identifier }}`.
+You are working on tracker issue `{{ issue.identifier }}` for the Symphony repository.
 
 Issue:
 
@@ -53,18 +67,12 @@ Description:
 No description provided.
 {% endif %}
 
-{% if attempt %}
-Continuation context:
-
-- Retry attempt #{{ attempt }}.
-- Resume from existing workspace state before repeating completed work.
-{% endif %}
-
 ## Required Setup
 
+- Use the local tracker and repository auth already configured for this environment.
 - Work in the current workspace checkout.
-- Use the repository authentication configured for this environment.
-- Keep changes small, validate them, push to the configured fork or origin, and open a PR when the work is ready for review.
+- For real implementation tickets, branch from `origin/main`, keep changes small, add tests, run compile and lint, push to `origin`, and open a PR.
+- For test tickets that explicitly say not to change code, do not create commits or PRs.
 
 GitHub issue state is label-based:
 
@@ -82,7 +90,7 @@ GitHub issue state is label-based:
 1. Read the issue and current labels.
 2. If state is `todo`, move it to `in-progress`.
 3. Find or create one persistent issue comment titled `## Agent Workpad`.
-4. Keep progress, plan, validation, PR URL, blockers, and final notes in that single workpad comment.
+4. Keep all progress, plan, validation, PR URL, blockers, and final notes in that single workpad comment.
 5. Follow the issue instructions exactly.
 6. Move the issue to `Human Review` when implementation work is ready for review.
 7. Move the issue to `Done` only when the issue explicitly says the agent should close it out without human review.

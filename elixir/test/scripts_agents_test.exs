@@ -57,7 +57,9 @@ defmodule ScriptsAgentsTest do
     assert {output, 0} = run_agents(ctx, ["symphony"])
     assert output =~ "PWD=#{Path.join(ctx.repo_root, "elixir")}"
     assert output =~ "MISE:exec -- ./bin/symphony"
-    assert output =~ "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./WORKFLOW.md"
+
+    assert output =~
+             "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./local-workflows/WORKFLOW.symphony.local.md"
   end
 
   test "runs the built-in actions profile in the foreground" do
@@ -66,7 +68,9 @@ defmodule ScriptsAgentsTest do
     assert {output, 0} = run_agents(ctx, ["actions"])
     assert output =~ "PWD=#{Path.join(ctx.repo_root, "elixir")}"
     assert output =~ "MISE:exec -- ./bin/symphony"
-    assert output =~ "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./WORKFLOW.actions.md"
+
+    assert output =~
+             "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./local-workflows/WORKFLOW.actions.local.md"
   end
 
   test "restarts a selected background profile" do
@@ -107,7 +111,9 @@ defmodule ScriptsAgentsTest do
     assert {output, 0} = run_agents(ctx, [])
     refute output =~ "SYSTEMCTL:--user restart"
     assert output =~ "PWD=#{Path.join(ctx.repo_root, "elixir")}"
-    assert output =~ "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./WORKFLOW.md"
+
+    assert output =~
+             "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./local-workflows/WORKFLOW.symphony.local.md"
   end
 
   test "run starts the default profile in the foreground" do
@@ -116,7 +122,9 @@ defmodule ScriptsAgentsTest do
     assert {output, 0} = run_agents(ctx, ["run"])
     assert output =~ "PWD=#{Path.join(ctx.repo_root, "elixir")}"
     assert output =~ "MISE:exec -- ./bin/symphony"
-    assert output =~ "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./WORKFLOW.md"
+
+    assert output =~
+             "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./local-workflows/WORKFLOW.symphony.local.md"
   end
 
   test "runs an ad hoc workflow path with the default repo" do
@@ -148,7 +156,7 @@ defmodule ScriptsAgentsTest do
 
     assert command_log =~ "SYSTEMCTL:--user stop symphony\n"
     assert command_log =~ "SYSTEMCTL:--user stop symphony-actions\n"
-    assert output =~ "PKILL:-f #{Path.join(ctx.repo_root, "elixir")}/WORKFLOW.md"
+    assert output =~ "PKILL:-f #{Path.join(ctx.repo_root, "elixir")}/local-workflows/WORKFLOW.symphony.local.md"
     assert output =~ "PKILL:-f #{Path.join(ctx.actions_repo, "elixir")}/WORKFLOW.actions.md"
     refute output =~ "MISE:"
   end
@@ -241,7 +249,7 @@ defmodule ScriptsAgentsTest do
         )
 
       assert count_occurrences(command_log, "NOHUP:#{ctx.fake_mise} exec -- ./bin/symphony") == 2
-      assert command_log =~ "WORKFLOW.md"
+      assert command_log =~ "local-workflows/WORKFLOW.symphony.local.md"
       assert command_log =~ "WORKFLOW.actions.md"
       refute command_log =~ "SYSTEMCTL:"
     end

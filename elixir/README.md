@@ -59,6 +59,8 @@ mise trust
 mise install
 mise exec -- mix setup
 mise exec -- mix build
+cp examples/workflows/linear-codex.md WORKFLOW.md
+# Edit WORKFLOW.md for your tracker, repository, credentials, and workspace.
 mise exec -- ./bin/symphony ./WORKFLOW.md
 ```
 
@@ -131,10 +133,13 @@ Example:
 ops|/Users/you/code/ops|WORKFLOW.ops.md|4102|/Users/you/logs/ops|symphony-ops
 ```
 
-The built-in profiles `default` (`WORKFLOW.md` — Symphony itself), `symphony`
-(alias of `default`), and `actions` (`WORKFLOW.actions.md` —
-`ethereum-optimism/actions`, service `symphony-actions`) are always loaded.
-The profile file extends or overrides them.
+The built-in profiles always loaded are:
+
+- `default` and `symphony` — `local-workflows/WORKFLOW.symphony.local.md`, service `symphony`. Running `agents` with no args dispatches this profile.
+- `actions` — `local-workflows/WORKFLOW.actions.local.md`, service `symphony-actions`. Use `agents actions` to foreground this one.
+
+The profile file extends or overrides them. `local-workflows/` is the
+machine-local workflow directory (see `elixir/local-workflows/README.md`).
 
 Running `agents` (no args) foregrounds only the `default` profile. Background
 services are an explicit opt-in via `agents --bg [profile|all]`; bare `agents`
@@ -182,13 +187,16 @@ Minimal Linear plus Codex-compatible example:
 ---
 tracker:
   kind: linear
-  project_slug: "..."
+linear:
+  api_key: $LINEAR_API_KEY
+  project_slug: your-project-slug
 workspace:
   root: ~/code/workspaces
 hooks:
   after_create: |
-    git clone git@github.com:your-org/your-repo.git .
+    git clone "$SYMPHONY_REPOSITORY_URL" .
 agent:
+  kind: codex
   max_concurrent_agents: 10
   max_turns: 20
 codex:
@@ -206,8 +214,8 @@ Minimal GitHub Issues plus Claude example:
 ---
 tracker:
   kind: github
-  active_states: ["Todo", "In Progress"]
-  terminal_states: ["Done", "Closed"]
+  active_states: ["todo", "in-progress"]
+  terminal_states: ["done", "closed"]
 github:
   repo: your-org/your-repo
   label_prefix: symphony
@@ -215,7 +223,7 @@ workspace:
   root: ~/code/workspaces
 hooks:
   after_create: |
-    git clone git@github.com:your-org/your-repo.git .
+    git clone "$SYMPHONY_REPOSITORY_URL" .
 agent:
   kind: claude
   max_concurrent_agents: 5
@@ -248,6 +256,9 @@ Notes:
   identifier, title, and body.
 - Use `hooks.after_create` to bootstrap a fresh workspace. For a Git-backed repo, you can run
   `git clone ... .` there, along with any other setup commands you need.
+- Keep portable examples free of machine-local hostnames, IPs, usernames, absolute home paths, and
+  private repository defaults. Put those deployment-specific values in a copied `WORKFLOW.md` or in
+  a clearly labeled file under `local-workflows/`.
 - If a hook needs `mise exec` inside a freshly cloned workspace, trust the repo config and fetch
   the project dependencies in `hooks.after_create` before invoking `mise` later from other hooks.
 - `tracker.kind` selects the tracker adapter. Linear reads `linear.api_key` from `LINEAR_API_KEY`
