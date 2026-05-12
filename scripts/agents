@@ -94,7 +94,8 @@ profile_exists() {
 
 load_profiles() {
   add_profile "default" "$repo_root" "WORKFLOW.md" "" "" "symphony"
-  add_profile "symphony" "$repo_root" "WORKFLOW.symphony.md" "" "" "symphony"
+  add_profile "symphony" "$repo_root" "WORKFLOW.md" "" "" "symphony"
+  add_profile "actions" "$repo_root" "WORKFLOW.actions.md" "" "" "symphony-actions"
 
   if [ -r "$config_file" ]; then
     while IFS='|' read -r name root workflow port logs_root service extra; do

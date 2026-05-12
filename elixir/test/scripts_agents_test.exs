@@ -57,7 +57,16 @@ defmodule ScriptsAgentsTest do
     assert {output, 0} = run_agents(ctx, ["symphony"])
     assert output =~ "PWD=#{Path.join(ctx.repo_root, "elixir")}"
     assert output =~ "MISE:exec -- ./bin/symphony"
-    assert output =~ "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./WORKFLOW.symphony.md"
+    assert output =~ "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./WORKFLOW.md"
+  end
+
+  test "runs the built-in actions profile in the foreground" do
+    ctx = test_context()
+
+    assert {output, 0} = run_agents(ctx, ["actions"])
+    assert output =~ "PWD=#{Path.join(ctx.repo_root, "elixir")}"
+    assert output =~ "MISE:exec -- ./bin/symphony"
+    assert output =~ "--i-understand-that-this-will-be-running-without-the-usual-guardrails ./WORKFLOW.actions.md"
   end
 
   test "restarts a selected background profile" do
@@ -154,7 +163,6 @@ defmodule ScriptsAgentsTest do
     assert command_log =~ "SYSTEMCTL:--user stop symphony\n"
     assert command_log =~ "SYSTEMCTL:--user stop symphony-actions\n"
     assert output =~ "PKILL:-f #{Path.join(ctx.repo_root, "elixir")}/WORKFLOW.md"
-    assert output =~ "PKILL:-f #{Path.join(ctx.repo_root, "elixir")}/WORKFLOW.symphony.md"
     assert output =~ "PKILL:-f #{Path.join(ctx.actions_repo, "elixir")}/WORKFLOW.actions.md"
     refute output =~ "MISE:"
   end

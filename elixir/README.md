@@ -128,12 +128,18 @@ name|symphony_root|workflow|port|logs_root|service
 Example:
 
 ```text
-actions|/Users/you/code/actions|WORKFLOW.actions.md|4101|/Users/you/logs/actions|symphony-actions
+ops|/Users/you/code/ops|WORKFLOW.ops.md|4102|/Users/you/logs/ops|symphony-ops
 ```
 
-The two built-in profiles `default` (`WORKFLOW.md`) and `symphony`
-(`WORKFLOW.symphony.md`) are always loaded; the profile file extends or
-overrides them.
+The built-in profiles `default` (`WORKFLOW.md` — Symphony itself), `symphony`
+(alias of `default`), and `actions` (`WORKFLOW.actions.md` —
+`ethereum-optimism/actions`, service `symphony-actions`) are always loaded.
+The profile file extends or overrides them.
+
+Running `agents` (no args) foregrounds the `default` profile and restarts every
+other configured profile in the background. With the built-ins, that means:
+foreground `symphony`, background `symphony-actions`. `service` names dedupe —
+two profiles sharing a `service` share one background process.
 
 ### Platform notes
 
