@@ -136,10 +136,10 @@ The built-in profiles `default` (`WORKFLOW.md` — Symphony itself), `symphony`
 `ethereum-optimism/actions`, service `symphony-actions`) are always loaded.
 The profile file extends or overrides them.
 
-Running `agents` (no args) foregrounds the `default` profile and restarts every
-other configured profile in the background. With the built-ins, that means:
-foreground `symphony`, background `symphony-actions`. `service` names dedupe —
-two profiles sharing a `service` share one background process.
+Running `agents` (no args) foregrounds only the `default` profile. Background
+services are an explicit opt-in via `agents --bg [profile|all]`; bare `agents`
+no longer touches other services. `service` names still dedupe background
+work — two profiles sharing a `service` share one background process.
 
 ### Platform notes
 

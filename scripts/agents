@@ -462,14 +462,6 @@ run_ad_hoc_workflow() {
   run_foreground "__adhoc__"
 }
 
-run_all_with_foreground() {
-  local foreground_profile="${1:-default}"
-
-  require_profile "$foreground_profile"
-  restart_background_except_profile "$foreground_profile"
-  run_foreground "$foreground_profile"
-}
-
 load_profiles
 
 case "${1:-}" in
@@ -496,9 +488,6 @@ case "${1:-}" in
 
     exit 0
     ;;
-  all)
-    run_all_with_foreground
-    ;;
   run)
     run_foreground "${2:-default}"
     ;;
@@ -513,10 +502,7 @@ case "${1:-}" in
 
     exit 0
     ;;
-  "")
-    run_all_with_foreground
-    ;;
-  default)
+  "" | default)
     run_foreground "default"
     ;;
   *.md | /*)
