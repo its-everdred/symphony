@@ -169,8 +169,18 @@ defmodule SymphonyElixir.TerminalInput do
   defp enter_raw_mode(true), do: :ok
 
   defp enter_raw_mode(false) do
-    with {:ok, device} <- tty_device(),
-         :ok <- run_stty(device, ["-icanon", "-echo", "-isig", "-ixon", "min", "1", "time", "0"]) do
+    with {:ok, device} <- SymphonyElixir.Os.tty_device(),
+         :ok <-
+           SymphonyElixir.Os.stty(device, [
+             "-icanon",
+             "-echo",
+             "-isig",
+             "-ixon",
+             "min",
+             "1",
+             "time",
+             "0"
+           ]) do
       enable_bracketed_paste()
       :ok
     end
@@ -179,8 +189,8 @@ defmodule SymphonyElixir.TerminalInput do
   defp restore_terminal do
     disable_bracketed_paste()
 
-    case tty_device() do
-      {:ok, device} -> run_stty(device, ["sane"])
+    case SymphonyElixir.Os.tty_device() do
+      {:ok, device} -> SymphonyElixir.Os.stty(device, ["sane"])
       _ -> :ok
     end
 
@@ -189,24 +199,4 @@ defmodule SymphonyElixir.TerminalInput do
 
   defp enable_bracketed_paste, do: IO.write("\e[?2004h")
   defp disable_bracketed_paste, do: IO.write("\e[?2004l")
-
-  defp tty_device do
-    case File.read_link("/proc/self/fd/0") do
-      {:ok, "/dev/" <> _ = path} -> {:ok, path}
-      {:ok, path} -> {:error, "stdin is not a tty (#{path})"}
-      {:error, reason} -> {:error, "could not resolve controlling tty: #{inspect(reason)}"}
-    end
-  end
-
-  defp run_stty(device, args) do
-    case System.cmd("stty", ["-F", device] ++ args, stderr_to_stdout: true) do
-      {_output, 0} ->
-        :ok
-
-      {output, status} ->
-        {:error, "stty #{Enum.join(args, " ")} on #{device} exited with status #{status}: #{String.trim(output)}"}
-    end
-  rescue
-    error in ErlangError -> {:error, Exception.message(error)}
-  end
 end
